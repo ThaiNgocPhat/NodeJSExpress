@@ -1,0 +1,20 @@
+# Bỏ qua các file nhị phân của hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Bỏ qua thư mục node_modules
+node_modules/
+
+# Bỏ qua các file log
+*.log
+*service-account-credentials
+
+# Bỏ qua các file cấu hình của IDE
+.idea/
+.vscode/
+
+# Bỏ qua các file tạm thời của hệ thống
+*.swp
+
+# Bỏ qua các file môi trường như .env
+.env
