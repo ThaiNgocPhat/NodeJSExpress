@@ -7,7 +7,6 @@ node_modules/
 
 # Bỏ qua các file log
 *.log
-*service-account-credentials
 
 # Bỏ qua các file cấu hình của IDE
 .idea/
