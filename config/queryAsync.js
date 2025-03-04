@@ -1,4 +1,4 @@
-import db from '../config/db.js';
+import db from "../config/db.js";
 
 export const dbQuery = (sql, values) => {
     return new Promise((resolve, reject) => {
@@ -10,4 +10,4 @@ export const dbQuery = (sql, values) => {
             }
         });
     });
-}
+};

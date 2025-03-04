@@ -34,7 +34,7 @@ class CategoryController {
             // Lỗi bất kỳ khác, trả về lỗi server
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
             });
         }
     }    
@@ -65,7 +65,7 @@ class CategoryController {
             }
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
             });
         }
     }
@@ -91,10 +91,25 @@ class CategoryController {
             // Nếu lỗi không phải do người dùng gây ra, trả về lỗi server
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
             });
         }
     }    
+
+    async deleteCategory(req, res) {
+        try {
+            const { categoryId } = req.params; // Lấy categoryId từ params
+            const response = await CategoryService.deleteCategory(categoryId); 
+            // Trả về phản hồi
+            res.status(response.code).json(response);
+        } catch (error) {
+            res.status(500).json({
+                code: 500,
+                message: "Lỗi Server",
+                error: error.message
+            })
+        }
+    }
 
     //ADMIN AND MANAGER
     async listCategory(req, res) {
@@ -106,20 +121,40 @@ class CategoryController {
             console.error("Error in listCategory:", error);  
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
             });
         }
     }
 
-    async getCategoryById(req, res) {
+    async findCategoryByName(req, res) {
         try{
-            const { categoryId } = req.params;
-            const response = await CategoryService.getCategoryById(categoryId);
+            const { categoryName } = req.body;
+            if(!categoryName){
+                return res.status(400).json({
+                    code: 400,
+                    message: "Danh mục không được để trống"
+                }) 
+            }
+            const response = await CategoryService.findCategoryByName(categoryName);
             res.status(response.code).json(response);
         }catch (error){
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
+            })
+        }
+    }
+
+    async findCategoryById(req, res) {
+        try{
+            const {categoryId} = req.params;
+            const response = await CategoryService.findCategoryById(categoryId);
+            res.status(response.code).json(response);
+        }catch (error){
+            return res.status(500).json({
+                code: 500,
+                message: "Lỗi Server",
+                error: error.message
             })
         }
     }
@@ -130,10 +165,9 @@ class CategoryController {
             const response = await CategoryService.listCategoryPermitAll();
             res.status(response.code).json(response);
         } catch (error) {
-            console.error("Error in listCategoryPermitAll:", error);
             return res.status(500).json({
                 code: 500,
-                message: "Internal Server Error"
+                message: "Lỗi Server"
             });
         }
     }

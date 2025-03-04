@@ -1,4 +1,4 @@
-import authService from "../services/AuthService.js";
+import authService from "../services/authService.js";
 import { loginSchema, registerSchema, resetPasswordSchema } from "../validation/authValidator.js";
 
 class AuthController {
@@ -32,8 +32,6 @@ class AuthController {
 
     login = async (req, res) => {
         try {
-            console.log("Request body:", req.body);  // Log dữ liệu từ client (Postman)
-    
             // Validate the request body
             await loginSchema.validateAsync(req.body, { abortEarly: false });
             const { user_name, password } = req.body;

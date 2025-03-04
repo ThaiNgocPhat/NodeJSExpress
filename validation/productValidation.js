@@ -3,7 +3,7 @@ import { dbQuery } from "../config/queryAsync.js";
 
 // Hàm validate dữ liệu sản phẩm
 const checkProductNameAndSKU = async ({ product_name, sku }) => {
-    const existingProductName = await dbQuery(`SELECT * FROM product WHERE LOWER(product_name) = LOWER(?)`, [product_name]);
+    const existingProductName = await dbQuery(`SELECT * FROM products WHERE LOWER(product_name) = LOWER(?)`, [product_name]);
     if (existingProductName.length > 0) {
         throw {
             code: 409,
@@ -12,7 +12,7 @@ const checkProductNameAndSKU = async ({ product_name, sku }) => {
         };
     }
 
-    const existingSKU = await dbQuery(`SELECT * FROM product WHERE LOWER(sku) = LOWER(?)`, [sku]);
+    const existingSKU = await dbQuery(`SELECT * FROM products WHERE LOWER(sku) = LOWER(?)`, [sku]);
     if (existingSKU.length > 0) {
         throw {
             code: 409,
@@ -55,7 +55,9 @@ export const productSchema = Joi.object({
         'number.min': 'Số lượng tồn kho không thể nhỏ hơn 0.',
         'any.required': 'Số lượng tồn kho là bắt buộc.'
     }),
-    image: Joi.string().uri().optional().messages({
-        'string.uri': 'Ảnh phải là một URL hợp lệ.'
+    category_id: Joi.string().uuid().required().messages({
+        'string.base': 'ID danh mục phải là một chuỗi.',
+        'string.uuid': 'ID danh mục phải là một UUID.',
+        'any.required': 'ID danh mục là bắt buộc.'
     })
 }).external(checkProductNameAndSKU);

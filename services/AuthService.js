@@ -59,6 +59,8 @@ class AuthService {
     }    
 
     async login(user_name, password) {
+        console.log("Đang xử lý login cho:", user_name);
+    
         // Kiểm tra dữ liệu đầu vào
         if (!user_name || !password) {
             throw {
@@ -67,7 +69,7 @@ class AuthService {
                 message: "Both username and password are required"
             };
         }        
-   
+    
         // Kiểm tra người dùng có tồn tại hay không
         const results = await dbQuery(`SELECT * FROM users WHERE user_name = ?`, [user_name]);
         if (results.length === 0) {
@@ -77,9 +79,11 @@ class AuthService {
                 message: "Invalid username or password"
             };
         }
-   
+    
+        console.log("Kết quả tìm user:", results); // Đã sửa lỗi
+    
         const user = results[0];
-   
+    
         // Kiểm tra mật khẩu
         const isPasswordMatch = await bcrypt.compare(password, user.password);
         if (!isPasswordMatch) {
@@ -89,7 +93,7 @@ class AuthService {
                 message: "Invalid username or password"
             };
         }
-   
+    
         // Kiểm tra trạng thái tài khoản
         if (!user.email_verified) {
             throw {
@@ -105,7 +109,6 @@ class AuthService {
                 message: "Tài khoản đã bị khoá"
             };
         }
-   
         if (user.is_deleted) {
             throw {
                 code: 403,
@@ -113,25 +116,36 @@ class AuthService {
                 message: "Tài khoản đã bị xoá"
             };
         }
-
-        //Truy vấn role để lấy thông tin của role
+    
+        // Truy vấn role để lấy thông tin của role
         const roleResults = await dbQuery(`SELECT * FROM role WHERE role_id = ?`, [user.role_id]);
-        // Lấy thông tin của role
+        if (roleResults.length === 0) {
+            throw {
+                code: 500,
+                status: "INTERNAL_SERVER_ERROR",
+                message: "Không tìm thấy thông tin quyền của user"
+            };
+        }
+        
+        // Lấy thông tin role
         const role = roleResults[0].role_name;
-   
+    
         // Tạo token JWT với role
         const token = jwt.sign(
-            { user_name: user.user_name, role: role },  
+            { user_name: user.user_name, role: role, user_id: user.user_id },  
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
-   
+    
+        console.log("Generated Token:", token);
+        
         return {
             code: 200,
             status: "OK",
             token
         };
-    }   
+    }
+    
 
     async verifyEmail(otpInput) {
         // Kiểm tra nếu OTP không hợp lệ

@@ -83,64 +83,95 @@ class CategoryService {
     
         // Lấy thông tin danh mục hiện tại
         const category = existingCategory[0];
-    
-        // Kiểm tra nếu status đã là 1 (tức là đã bị khóa)
-        if (category.status === 1) {
-            throw {
-                code: 400,
-                status: "BAD_REQUEST",
-                message: "Danh mục đã bị khoá"
-            };
-        }
-    
-        // Thay đổi trạng thái của danh mục
-        const newStatus = category.status === 1 ? 0 : 1; // Nếu status là 1 thì đổi thành 0 và ngược lại
-        const sql = `UPDATE category SET status = ? WHERE category_id = ?`;
-        await dbQuery(sql, [newStatus, categoryId]);
-    
-        // Lấy lại thông tin danh mục vừa thay đổi trạng thái
-        const updatedCategory = await dbQuery(`SELECT * FROM category WHERE category_id =?`, [categoryId]);
-    
-        // Chuyển đổi giá trị 1/0 thành true/false
-        const updatedCategoryData = updatedCategory[0];
+        const newStatus = Boolean(category.status) ? 0 : 1;
+
+        //Cập nhật trạng thái mới
+        await dbQuery(`update category set status = ? where category_id = ?`, [newStatus, categoryId]);
+
+        // Lấy lại thông tin danh mục sau khi cập nhật
+        const updateCategory = await dbQuery(`select * from category where category_id = ?`, [categoryId]);
+        const updatedCategoryData = updateCategory[0];
         updatedCategoryData.status = updatedCategoryData.status === 1;
         updatedCategoryData.is_deleted = updatedCategoryData.is_deleted === 1;
     
+        //Thông báo mở/khoá dựa váo trạng thái
+        const message = newStatus? "Danh mục đã bị khoá" : "Danh mục đã được mở";
+
         // Trả về kết quả
         return {
             code: 200,
             status: "OK",
-            message: "Thay đổi trạng thái danh mục thành công",
-            data: updatedCategoryData
+            message: message,
+            data: updateCategory[0]
         };
     }    
 
+    async deleteCategory(categoryId) {
+        //Kiểm tra id có tồn tại hay không
+        const existingCategory = await dbQuery(`select * from category where category_id =?`, [categoryId]);
+        if(existingCategory.length === 0){
+            throw{
+                code: 404,
+                status: "NOT_FOUND",
+                message: "Danh mục không tồn tại"
+            }
+        }
+        //Xóa danh mục
+        const sql = `delete from category where category_id =?`;
+        await dbQuery(sql, [categoryId]);
+
+        // Trả về kết quả
+        return {
+            code: 200,
+            status: "OK",
+            message: "Xóa danh mục thành công"
+        }
+    }
+
     //ADMIN AND MANAGER
-    async listCategory(){
+    async listCategory(page = 1, limit = 10, sortBy = "created_at", order = "desc"){
+        //Tính offset cho phân trang
+        const offset = (page - 1) * limit;
         //Lấy tất cả danh mục
-        const sql = `SELECT * FROM category`;
-        const categories = await dbQuery(sql);
+        const sql = `select category_id, category_name, status, is_deleted, created_at, created_at 
+                    from category
+                    order by ${sortBy} ${order}
+                    limit ? offset ?`
+
+        const categories = await dbQuery(sql, [limit, offset]);
+
+        //Chuyển đổi 1/0 thành true/false
         categories.forEach(category => {
             category.status = category.status === 1;
             category.is_deleted = category.is_deleted === 1;
         });
 
+        //Đếm tổng số danh mục
+        const countSql = `select count(*) as total from category`
+        const countResult = await dbQuery(countSql);
+        const total = countResult[0]?.total || 0;
         // Trả về danh sách danh mục
         return {
             code: 200,
             status: "OK",
             message: "Lấy danh sách danh mục thành công",
-            data: categories
+            data: categories,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         }
     }
 
-    async getCategoryById(categoryId) {
+    async findCategoryByName(categoryName) {
         // Lấy danh mục theo id
-        const sql = `SELECT * FROM category WHERE category_id = ?`;
-        const category = await dbQuery(sql, [categoryId]);
+        const sql = `SELECT * FROM category WHERE category_name like ?`;
+        const categories = await dbQuery(sql, [`%${categoryName}%`]);
     
         // Kiểm tra nếu không tìm thấy danh mục hoặc category_id không khớp
-        if (category.length === 0 || category[0].category_id !== categoryId) {
+        if (categories.length === 0) {
             throw {
                 code: 404,
                 status: "NOT_FOUND",
@@ -148,18 +179,45 @@ class CategoryService {
             };
         }
 
-        category[0].status = category[0].status === 1;
-        category[0].is_deleted = category[0].is_deleted === 1;
+        const formattedCategorys = categories.map(category => ({
+            ...category,
+            status: category.status === 1,
+            is_deleted: category.is_deleted === 1,
+        }))
     
         // Trả về thông tin danh mục
         return {
             code: 200,
             status: "OK",
             message: "Lấy thông tin danh mục thành công",
-            data: category[0]
+            data: formattedCategorys
         };
     }    
     
+    async findCategoryById(categoryId) {
+        // Lấy danh mục theo id
+        const sql = `SELECT * FROM category WHERE category_id =?`;
+        const categories = await dbQuery(sql, [categoryId]);
+        // Kiểm tra nếu không tìm thấy danh mục hoặc category_id không khớp
+        if (categories.length === 0) {
+            throw {
+                code: 404,
+                status: "NOT_FOUND",
+                message: "Danh mục không tồn tại"
+            };
+        }
+
+        const formattedCategory = categories[0];
+        formattedCategory.status = formattedCategory.status === 1;
+        formattedCategory.is_deleted = formattedCategory.is_deleted === 1;
+        // Trả về thông tin danh mục
+        return {
+            code: 200,
+            status: "OK",
+            message: "Lấy thông tin danh mục thành công",
+            data: formattedCategory
+        };
+    }
     //PERMITALL
     async listCategoryPermitAll() {
         // Lấy danh sách chỉ có category_name và category_description
